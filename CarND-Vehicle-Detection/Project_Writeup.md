@@ -85,7 +85,7 @@ Also, **Additionally, I Combine the Following Features** too:
 
 Here we will see Details about the **HOG Features Extraction and Training**.
 
-### 2.1 HOG FEATURES Extraction From Training Images And Choice Of HOG PARAMETERS
+### 2.1. HOG FEATURES Extraction From Training Images And Choice Of HOG PARAMETERS
 - RUBRIC:
   - Criteria:  
     Explain How (and Identify Where in your Code) you Extracted HOG Features From the Training Images.  
@@ -100,7 +100,7 @@ The **Code** for this Step is contained in the [**IPython NoteBook**](https://gi
 - Additionally, `Cell [14]` contains the Implementation for Extracting **Spatial Binning of Color Features**, and
 - `Cell [15]` contains the Implementation for Extracting **Histograms of Colors**.
 
-#### **DATA EXPLORATION**
+#### **2.1.1. DATA EXPLORATION**
 - `Cells [20] & [21]` contain the Implementation for my **Data Exploration**.
 
 First, I did Data Exploration in order to understand the **Nature of the Training Dataset** of Images. As part of this, I randomly Read-in **Samples** of **Vehicle** and **Non-Vehicle** Images, and Extracted the **HOG Features** using **SciKit Learn's HOG Function**:
@@ -118,7 +118,7 @@ Here are some **Example Images of Cars and Not-Cars**, plotted together with the
 
 I then proceed with also **Extracting Spatial Features [Spatial Binning of Color Features] and Color Features [Histograms of Colors]**.
 
-#### **Final Choice Of HOG PARAMETERS**
+#### **2.1.2. Final Choice Of HOG PARAMETERS**
 In order to have a clear Idea of Which Features Work Well and Which Ones Do Not, I proceeded with **Training my Linear SVM CLASSIFIER MODEL** with different **Combinations of these Features** and Observing the **Model's Accuracy** on the Test Dataset. I could see that as far as HOG is Concerned the following Values Worked Well for me for the **HOG PARAMETERS**, i.e., Parameters of **`skimage.feature.hog()`**, as I got the **Maximum Testing Accuracy** [More on that in the Next Section] of the Model [`Test Accuracy of SVC = 0.9952`] with these **HOG PARAMETERS** together with the Other **COLOR Spatial and Histogram PARAMETERS** as below which I Extracted and Combined with the HOG Features for Model Training:
 
 **Used HOG PARAMETERS for `skimage.feature.hog()`**:  
@@ -140,9 +140,12 @@ hist_bins    = 32       # COLOR HISTOGRAM Bins.
 
 All Other PARAMETERS remaining the Same, I specifically observed that the Combination of **`color_space = YCrCb`** and **HOG `cells_per_block = 4`** gave the **BEST Model Training Test Accuracy [`Test Accuracy of SVC =  0.9952`]** Over HOG `cells_per_block = 2` or/and `color_space = RGB` which gave a Relatively Lesser Model Training Test Accuracy [`Test Accuracy of SVC =  0.9924`].
 
-So, I froze the above PARAMETERS SET for the Project!
+***UPDATE!:***
+Though I observed **HOG `cells_per_block = 4`** gave the **BEST Model Training Test Accuracy** and Also **Best Detections** in **Individual Images**, I observed that **HOG `cells_per_block = 2`** gave a **BETTER Detection Performance** in the **Project Video**, especially For the **Farther Cars**!
 
-### 2.2 Choice Of CLASSIFIER & TRAINING Using The Selected HOG FEATURES [And Optional SPATIAL & COLOR FEATURES]
+So, I froze the above **PARAMETERS SET & HOG `cells_per_block = 2`** for the Project!
+
+### 2.2. Choice Of CLASSIFIER & TRAINING Using The Selected HOG FEATURES [And Optional SPATIAL & COLOR FEATURES]
 - RUBRIC:
   - Criteria:  
     Describe How (and Identify Where in your Code) you Trained a Classifier Using your Selected HOG Features  
@@ -154,25 +157,42 @@ So, I froze the above PARAMETERS SET for the Project!
 
 The **Code** for this Step is contained in the [**IPython NoteBook**](https://github.com/nmuthukumar/UDACITY_SDCarEngg-ND--P1--Prj05-VehicleDetTrack/blob/master/CarND-Vehicle-Detection/VehicleDetTrack.ipynb), `Cell [22]`.
 
-I chose `sklearn` **LINEAR SVM** as the **CLASSIFIER Model** that I will use for this Project, as LINEAR SVM is popularly known to be the ***Best Bet*** for an **Ideal Combination of Speed & Accuracy**:
-```py
-from sklearn.svm import LinearSVC
-svc = LinearSVC()
-```
+#### **2.2.1. BALANCED DATASET**
+I **Trained the Model** with the **HOG, Spatial & Color Feature Vectors** Extracted from the **UDACITY provided Dataset** Aggregated from **Popular Datasets like GTI and KITTI**.
 
-I also took care to **Normalize the Data** using `sklearn` `StandardScaler`:
-```py
-from sklearn.preprocessing import StandardScaler
-X_scaler = StandardScaler()
-```
-
-I **Trained the Model** with the **HOG, Spatial & Color Feature Vectors** Extracted from the **UDACITY provided Dataset** Aggregated from **Popular Datasets like GTI and KITTI**...:
+I verified that it is a **Balanced Dataset**, i.e., it has roughly the Same Number of +Ve & -Ve Samples, in order to **Avoid** having the **Algorithm** simply **Classify Everything** as belonging to the **Majority Class!**:
 ```py
 `Number of VEHICLE     IMAGES Used For Training:  8792`
 `Number of NON-VEHICLE IMAGES Used For Training:  8968`
 ```
 
-... And with the following **HYPERPARAMETERS SET**, as I found the following to be the **Best Combination** which yielded the **Maximum Model Training Test Accuracy** for me -> `Test Accuracy of SVC` =  **0.9952**!  
+#### **2.2.2. RANDOM SHUFFLING OF DATA & TRAIN-TEST DATA SPLIT**
+I also **Random Shuffled** and made a **80-20 Split** of the **Dataset Samples** Into **Training and Test Sets** using `sklearn.model_selection.train_test_split`:
+```py
+from sklearn.model_selection import train_test_split
+rand_state = np.random.randint(0, 100) # Initialize the Shuffle With a Different Random State Each Time.
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=rand_state) # Does Both Shuffle & Split!
+```
+
+- The **Random Shuffle** is to **Avoid possible Problems due to Data Order** [Possible Skew in the Model's Prediction due to Data Order].  
+- The **Train-Test Data Split** is to Enable **Estimation of Generalization of the MODEL to New Data** during Training.
+
+#### **2.2.3. NORMALIZATION OF DATA [Typically Zero Mean & Unit Variance]**
+I also did **Normalization of the Data** using `sklearn` `StandardScaler`, in order to **Avoid Individual Features or Feature Sets Dominating the Response of the CLASSIFIER**:
+```py
+from sklearn.preprocessing import StandardScaler
+X_scaler = StandardScaler()
+```
+
+#### **2.2.4. CLASSIFIER MODEL**
+I chose **`sklearn` LINEAR SVM** as the **CLASSIFIER Model** to use for this Project, as LINEAR SVM is popularly known to be the ***Best Bet*** for an **Ideal Combination of Speed & Accuracy**:
+```py
+from sklearn.svm import LinearSVC
+svc = LinearSVC()
+```
+
+#### **2.2.5. HYPERPARAMETERS**
+I used the following **HYPERPARAMETERS SET**, as I found the following to be the **Best Combination** which yielded the **Maximum Model Training Test Accuracy** for me -> **`Test Accuracy of SVC` = 0.9952**!:
 ```py
 ### HYPERPARAMETERS FOR TRAINING
 color_space  = 'YCrCb'  # COLOR SPACE, Options: RGB, HSV, HLS, LUV, YUV, YCrCb.
@@ -188,7 +208,15 @@ features_hog        = True # HOG             Features ON/OFF.
 ```
 
 As I stated earlier, I Specifically Observed that **`cells_per_block = 4` Worked Better** Than `cells_per_block = 2` and  
-**`color_space = YCrCb`** Worked Better Than `color_space = RGB` by giving both Best Train Test Accuracy and also Detection in the Test Images [More on that Later below...]
+**`color_space = YCrCb` Worked Better** Than `color_space = RGB` by giving out both Best Train-Test Accuracy and also Best Detections in the Individual Test Images [More on that Later below...].
+
+***UPDATE!:***
+Though I observed **HOG `cells_per_block = 4`** gave the **BEST Model Training Test Accuracy** and Also **Best Detections** in **Individual Images**, I observed that **HOG `cells_per_block = 2`** gave a **BETTER Detection Performance** in the **Project Video**, especially For the **Farther Cars**!
+
+So, I froze the above **PARAMETERS SET & HOG `cells_per_block = 2`** for the Project!
+
+#### **2.2.6. SAVING & USING OF MODEL**
+The **Trained CLASSIFIER MODEL** together with the **HYPERPARAMETERS SET** are **Saved** in a **"Pickle File" - `model_pickle.p`**, and this Saved Model is Used later for Prediction [Vehicles Detection] on Images and on Videos.
 
 
 ## 3. SLIDING WINDOW Search:
@@ -196,7 +224,7 @@ The **Code** for this Step is contained in the [**IPython NoteBook**](https://gi
 
 Once the Model is Trained, we use **Sliding Window Search** as the Technique to Search and Detect Vehicles on the Images, wherein we **Extract Patches of the Images** by Sliding Windows of Different Sizes, Positions and Overlaps, and Then **Extract Features** from those Patches and **Input** them to the **Model** so that the Model can **Predict** whether it contains a **Vehicle or Not**.
 
-### 3.1 SLIDING WINDOW Search And Choice Of PARAMETERS - Scales And Windows Overlap
+### 3.1. SLIDING WINDOW Search And Choice Of PARAMETERS - Scales And Windows Overlap
 - RUBRIC:
   - Criteria:  
     Describe How (and Identify Where in your Code) you Implemented a Sliding Window Search.  
@@ -221,7 +249,7 @@ xy_window    = (96, 96)
 xy_overlap   = (0.75, 0.75)
 ```
 
-### 3.2 Demonstration Of WORKING Of PIPELINE Through Sample Test Images, PERFORMANCE OPTIMIZATION Of The CLASSIFIER
+### 3.2. Demonstration Of WORKING Of PIPELINE Through Sample Test Images, PERFORMANCE OPTIMIZATION Of The CLASSIFIER
 - RUBRIC:
   - Criteria:  
     Show some Examples of Test Images to Demonstrate How your Pipeline is Working.  
@@ -243,7 +271,7 @@ Then, **Using this Sliding Windows Exploration**, I further **Tuned the FEATURE 
 3. YCrCb, HOG-ALL, Spatial Binning (32,32), HOG-CellsPerBlock = 4.
 4. YCrCb, HOG-ALL, Spatial Binning (32,32), HOG-CellsPerBlock = 2.
 
-As can be Seen from the Images, **`3) YCrCb, HOG-ALL, Spatial Binning (32,32), HOG-CellsPerBlock = 4`** gave me the **Best Performance** in terms of **More Robust Detections** and **Lesser False Positives** which I froze onto for the Project!  
+As can be Seen from the Images, **`3) YCrCb, HOG-ALL, Spatial Binning (32,32), HOG-CellsPerBlock = 4`** gave me the **Best Performance** in terms of **More Robust Detections** and **Lesser False Positives**!  
 - `YCrCb` Worked Better Than `RGB`.
 - `HOG CellsPerBlock = 4` Worked Better Than `HOG CellsPerBlock = 2`.
 - `Spatial Binning (32,32)` Worked Better Than `Spatial Binning (16,16)`.
@@ -270,13 +298,31 @@ Eventually I applied the **Trained SVM CLASSIFIER** for the **Project Video** fo
 
 The **Code** for this Step is contained in the [**IPython NoteBook**](https://github.com/nmuthukumar/UDACITY_SDCarEngg-ND--P1--Prj05-VehicleDetTrack/blob/master/CarND-Vehicle-Detection/VehicleDetTrack.ipynb), `From Cell [28] Until the End of the IPython NoteBook`.
 
-Here however, as the Earlier explained **Sliding Windows Search** is rather **Inefficient for Videos** where for Each Frame, the Image Portions need to be Iteratively Extracted Patch-by-Patch (Window Areas) and Feature Extraction Done and Feature Vectors fed into the Model for Prediction. So, I used another **More Efficient** Search Windows Technique called **HOG Sub-Sampling Window Search**. In this case, the **HOG Feature Vectors** are Extracted for the **Entire ROI** in **One-Shot** and then **Windows Search** is done on this Data in **Multiple Scales** through **Sub-Sampling**.
+Here however, the Earlier explained **Sliding Windows Search** is rather **Inefficient for Videos**, where for Each Frame the Image Portions need to be Iteratively Extracted Patch-by-Patch (Window Areas) and Feature Extraction Done and Feature Vectors fed into the Model for Prediction. So, I used another **More Efficient** Search Windows Technique called **HOG Sub-Sampling Window Search**, wherein the **HOG Feature Vectors** are Extracted for the **Entire ROI** in **One-Shot** and then **Windows Search** is done on this **Data** in **Multiple Scales** through **Sub-Sampling**.
 
-As can be seen from the below Image, the **Performance of HOG Sub-Sampling Windows Search** was pretty **Good** and **Comparable to the Best Performance** I found in the **Normal Sliding Windows** Technique as Above.
+As can be seen from the below Image, the **Performance of HOG Sub-Sampling Windows Search** was pretty **Good** and **Comparable to the Best Performance** I found in the **Normal Sliding Windows** Technique as Above:
 
 ![Vehicle Prediction In Image -- HOG Sub-Sample Windows Search](./Output_Images/3B_VehPredInImage--HOGSubSample/VehPredInImage--HOGSubSam-Scale1.5.png)
 
-### 4.1 FINAL VIDEO OUTPUT
+For **Vehicles Detection in the Video**, I used **3 Iterations of Searches**, Each with **Different Start and End Y-Positions**, **Different Scales**, and **Different HOG `cells_per_step`**, as follows. The Idea is to **Search** at the **Farther Areas (Near Horizon)** with Relatively **Smaller Scale** and **Less HOG `cells_per_step` (Finer Search)** and at the **Nearer Areas** with Relatively **Bigger Scale** and **More HOG `cells_per_step` (Relatively Coarser Search)** - the Reason being the **Vehicles** will appear **Smaller** at the **Farther Areas** and **Bigger** at the **Nearer Areas**:
+```py
+### SEARCH WINDOWS AREAS & PARAMETERS
+### Scale: 1 => 64x64, 1.5 => 96x96, 2 => 128x128.
+search_area_list = [
+    #[(ystart, ystop), scale, cells_per_step]
+    [ (360,    520),   1,     1],
+    [ (440,    656),   1.5,   2],
+    [ (360,    656),   2,     2]
+]
+```
+
+The **Search Areas** and the corresponding **Parameters & Number of Windows** are depicted in the below Image:
+
+![VehicleDet-Searches](./Output_Images/5_FinalOutput/VehicleDet-Searches.png)
+
+I then **Aggregated the Detections** as explained in **Section 4.2. Mechanisms To Handle MULTIPLE OVERLAPPING DETECTIONS And FALSE POSITIVES** in order to **Finalize**, **Label the Detections** and **Draw Bounding Boxes** around the **Detected Vehicles**.
+
+### 4.1. FINAL VIDEO OUTPUT
 - RUBRIC:
   - Criteria:  
     Provide a Link to your Final Video Output.  
@@ -288,20 +334,16 @@ As can be seen from the below Image, the **Performance of HOG Sub-Sampling Windo
     Video Output has been Generated With Detected Vehicle Positions Drawn  
     (Bounding Boxes, Circles, Cubes, etc.) on Each Frame of Video.
 
-The **Final Output** of my **Vehicle Detection Pipeline** can be seen as **Blue Color Bounding Boxes Drawn on Cars** in the below **Project Videos**. I have **2 Outputs** with **2 Different Sets of Search Windows** as stated below, with **slightly different Performance**.  
-In Both the Cases, the **Pipeline Works reasonably Well** on the Entire Project Video, with Good Detection Performance and rather Less False +ves.
+The **Final Output** of my **Vehicle Detection Pipeline** can be seen as **Blue Color Bounding Boxes Drawn on Detected Cars** in the below **Project Video**.  
+As can be seen from the **Processed Output Video**, the **Pipeline Works reasonably Well** on the **Entire Project Video**, with **Good Detection Performance** and **Zero False +Ves**!
 
-#### **Trial-1: 2 Search Windows Sizes of (96,96), (128,128)** --> Lesser False Positives, But 1 Missed Detection of a White Car in the Middle of the Video
-Link To **Final Project Video Output 1**: [Final Project Video Output-1](./Output_Videos/Project_Video_Output_VehDet-FINAL-1.mp4)
+Link To **Final Project Video Output**: [Final Project Video Output](./Output_Videos/Project_Video_Output_VehDet.mp4)
 
-#### **Trial-2: 3 Search Windows Sizes of (64,64), (96,96), (128,128)** --> Better Detections, A Bit More False Positives
-Link To **Final Project Video Output 2**: [Final Project Video Output-2](./Output_Videos/Project_Video_Output_VehDet-FINAL-2.mp4)
-
-Here's a **ScreenShot** showing an **Example** of the **Final Output**:
+Here's a **Screen-Shot** showing an **Example Frame** of the **Final Output**:
 
 ![Final Video Output Example Screen-Shot](./Output_Images/5_FinalOutput/AdvLaneAndVehicleDet-Output.png)
 
-### 4.2 Mechanisms To Handle MULTIPLE OVERLAPPING DETECTIONS And FALSE POSITIVES
+### 4.2. Mechanisms To Handle MULTIPLE OVERLAPPING DETECTIONS And FALSE POSITIVES
 - RUBRIC:
   - Criteria:  
     Describe How (and Identify Where in your Code) you Implemented some kind of  
@@ -318,17 +360,28 @@ The **Code** for this Step is contained in the [**IPython NoteBook**](https://gi
 
 I used **Heat Map** Technique for **Aggregation** of **Multiple Detections** on **Same Positions** and **Rejection** of **False Positives** which Sporadically happens in occasional Frames.
 
-In this Technique, Using a **Class Implementation** `Class VehiclesTrack()` in my **Vehicles Detection Pipeline** `Cell [34]`, and the Functions in `Cell [27]`, I **Aggregate** the **Bounding Boxes** found in **Last `n` Frames** and Draw a **Heat Map**:
+In this Technique, Using a **Class Implementation** `Class VehiclesTrack()` in my **Vehicles Detection Pipeline** `Cell [34]`, and the Functions in `Cell [27]`, I **Aggregate** the **Bounding Boxes** found in **Last `n` Frames** [i.e., **`CarsTrack.nFramesToTrack = 30`**] and Draw a **Heat Map**:
 1. The **Hotter Regions** indicate **Multiple Detections** on Same Positions => **More Confident Detections**.  
-   I used `scipy.ndimage.measurements.label()` to Identify individual Blobs in the HeatMap which correspond to **+Ve Detections**.  
+   I used **`scipy.ndimage.measurements.label()`** to Identify individual Blobs in the HeatMap which correspond to **+Ve Detections**.  
    I then constructed **Bounding Boxes** to Cover the Area of Each Blob Detected so as to Show over the **Detected Vehicles** in the Video.
-2. The **Colder Regions** indicate Spurious Detections => **False Positives**. I Reject them using a **`HeatThreshold = 8`**, which I found to Work Well.  
-   Also, assuming a Video Frame Rate of 30fps, this corresponds roughly to 250ms, which is an Optimum Value - Neither Too High to Miss Emergency Situations nor Too Low so that we Miss Rejection of False +Ves.
+2. The **Colder Regions** indicate Spurious Detections => **False Positives**.  
+   I Reject them using a **`HeatThreshold = 112`**, which I found to Work Well considering **Averaging of the Multiple Detections on the Same Area** in the **Number of Search Windows** in my **Iterative Searches** Vs. **Rejection of False Positives**.
 
 Here's an **Example Result** showing the **HeatMap** Drawn on a **Sample Image** from **Detections** from a **Series of Last `n` Frames**.  
-The Result of `scipy.ndimage.measurements.label()` and the **Bounding Boxes** then Overlaid on the Last Frame of the Video Sequence:
+The **Result of `scipy.ndimage.measurements.label()`** and the **Bounding Boxes** then Overlaid on the Last Frame of the Video Sequence:
 
 ![Heat Map](./Output_Images/4_HeatMap/HeatMap.png)
+
+#### **4.2.1. HeatMap Thresholding Value Vs. Vehicles Detection Time Vs. Emergency Situations Detection**
+The **Vehicle Detection Time** is a Function of the Combination of **CarsTrack.nFramesToTrack** & **HeatThreshold**,  
+the Reason being, on the One Hand we have **Multiple Windows Detected** on the **Same Area in a Single Frame** Based On:
+1. **Search Windows Overlaps** in a Single Search,
+2. **Iterative Repeat of Searches** with Different Scales & Parameters;  
+and on the Other Hand we **Aggregate & Average the Detections on the Same Area over Multiple Successive Frames**.
+
+So the Values of **CarsTrack.nFramesToTrack** & **HeatThreshold** need to be carefully chosen as an **Optimum Value**! - Neither Too High so that we have Delayed Detections and thereby Miss of Emergency Situations, Nor Too Low so that we Detect False +Ves!
+
+Based on the Number of Search Iterations, Scales & Parameters and therefore the **Number of Search Windows on a Single Car** & the **Number of Frames I Average the Detections**, I can roughly see a **Detection Time of Approximately 200ms** which should be OK to Detect Emergency Situations and Act on a timely fashion.
 
 
 ## 5. Discussion:
@@ -343,55 +396,54 @@ The Result of `scipy.ndimage.measurements.label()` and the **Bounding Boxes** th
 
 The following are some of the **Key Issues I observed/faced**, with relevant **Corrective Steps** that I either Attempted and Already Corrected the Issues (as Explained thereby) or Can Attempt for Future Corrections/Improvements. I also discuss some **General Learnings & Observations** in this Project:
 
-### 5.1 Issue [Solved] - Windows Sizes Vs. Detections
+### 5.1. Issue [Solved] - Windows Sizes Vs. Detections
 I learned in this Project that finding the **Right Window Size** is **Very Critical**:  
-For Example, On the Test Image './Test_Images/bbox-test-01.jpg':
--  64 -> Very Sensitive, Picked-up Even Some Patterns From Road.
+For Example, On the Test Image [./Test_Images/bbox-test-01.jpg](./Test_Images/bbox-test-01.jpg):
+-  64 -> Very Sensitive, Wrongly Picked-up Even Some Patterns From Road.
 -  96 -> ~Optimum.
 - 128 -> A Bit Insensitive, Did Not Pick-up Some Small Cars.
 
 So, now in my **Video Pipeline** I use a **Combination of these Window Sizes** and the **Heat Map** Technique in order to have an Optimum Performance.
 
-### 5.2 Issue [Solved] - `Start y` Vs. Missing Detections in Some of the Frames
+### 5.2. Issue [Solved] - `Start y` Vs. Missing Detections in Some of the Frames
 When I chose the `Start y` Position for the ROI, I initially Selected `Start y = 400` in order to Not Detect Cars in Trees & Skies [:-D].  
-But later, I realised after a long trial-and-error session that this was the Reason why I missed a Lot of Proper Detections in the Project Video!!!  
-So now, I have made `Start y = 360` [A Sweet-Spot Corresponding to Half Height of the Image, and also an Integer Multiple of the HOG Block Size of 8 in order to have Better Performance during HOG Features Extraction]. I see that `>380` Starts to Miss Detections for an `Window Size = 96x96`.  
-This Does give some False Positives in the Trees, Skies near the Image's Half Height but now I deal with it using the **Heat Maps** Technique that I explained in **Section 4.2 Mechanisms To Handle MULTIPLE OVERLAPPING DETECTIONS And FALSE POSITIVES** Above.
+But later, I realised after a long trial-and-error session that this was a bit Too High and so the Reason why I Missed a Lot of Proper Detections in the Project Video (At Some Instances, we have Cars at < `Start y = 400`)!!! I see that `>380` Starts to Miss Detections!  
+So now, I have made `Start y = 360` [A Sweet-Spot Corresponding to Half Height of the Image, and also an Integer Multiple of the HOG Block Size of 8 in order to have Better Performance during HOG Features Extraction]. This Does give some False Positives in the Trees & Sky near the Image's Half Height but now I deal with them using the **Heat Maps** Technique that I explained in **Section 4.2. Mechanisms To Handle MULTIPLE OVERLAPPING DETECTIONS And FALSE POSITIVES** Above.
 
-### 5.3 Observation/Learning - Performance of **Sliding Windows** Vs. **HOG Sub-Sampling Windows**
+### 5.3. Observation/Learning - Performance of **Sliding Windows** Vs. **HOG Sub-Sampling Windows**
 I learned that **HOG Sub-Sampling Windows** is indeed a **Powerful Technique** as it has Approximately Same Detection Performance with Much Lesser Run-Time!:  
-- Approx 6   sec Per Image for Sliding Window Search Vs.
-- Approx 1.5 sec Per Image for HOG-Subsampling Window Search.
+- Approx. 9-10 sec Per Image for Sliding Window Search, Versus
+- Approx. 1.4  sec Per Image for HOG-Subsampling Window Search.
 
-### 5.4 Alternative Approach - Handling of Multiple Detections
+### 5.4. Alternative Approach - Handling of Multiple Detections
 I used **Heat Maps** as the Technique in order to Handle Multiple Detections.  
-Another Alternative Approach [which I will Explore in Future] is **Windows Centroid** - Wherein, we can Assign the Position of the Detection To the Centroid of the Overlapping Windows.
+Another Alternative Approach [which I want to Explore in Future] is **Windows Centroid** - Wherein, we can Assign the Position of the Detection To the Centroid of the Overlapping Windows.
 
-### 5.5 Further Improvement [Open] - Tighter Bounding Boxes
+### 5.5. Further Improvement [Open] - Tighter Bounding Boxes
 I learned that we can have a Tighter Bounding Box on the Detected Vehicles if we have a Collection of More Sizes of Windows.  
 But this leads also to Lesser Performance [More Run-Time] of the Detection Pipeline.  
-I realize finding the **Optimum Combinations of Window Scales/Sizes** is an ***Art***, which I will Explore Further!
+I realize finding the **Optimum Combinations of Window Scales/Sizes** is an ***Art***, which I definitely want to Explore Further!
 
 
 ## 6. Optional Stand-Out Project Steps:
-### 6.1 Pipeline Running At Near Real-Time And Great Job Identifying & Tracking Vehicles With Minimum False Positives
+### 6.1. Pipeline Running At Near Real-Time And Great Job Identifying & Tracking Vehicles With Minimum False Positives
 - RUBRIC: A Stand-out Submission for this Project will be a Pipeline that Runs in Near Real-Time  
   (at least Several Frames per Second on a Good Laptop)  
   and Does a Great Job of Identifying and Tracking Vehicles in the Frame with a Minimum of False Positives.
 
 I observed that My Pipeline in My Laptop Takes:
-- Approx 1.5 sec Per Frame for Only Vehicle Detection.
-- Approx 6   sec Per Frame for the Combination of Advanced Lane Lines Detection + Vehicle Detection that I actually Used.
+- Approx. 0.44 sec Per Frame for Only Advanced Lanes Detection.
+- Approx. 6.6  sec Per Frame for the Combination of Advanced Lanes Detection + Vehicle Detection that I actually Used.
 
 I will need to Compare and Check Further with the Performances on Other [*Good*] Computers.
 
-### 6.2 Combining VEHICLE DETECTION PIPELINE With LANE FINDING PIPELINE [From Last Project]
+### 6.2. Combining VEHICLE DETECTION PIPELINE With LANE FINDING PIPELINE [From Last Project]
 - RUBRIC: As an Optional Challenge, Combine this Vehicle Detection Pipeline With  
   the Lane Finding Implementation from the Last Project!
 
-***I have DONE THIS!!! :-)*** as can be seen in the **Project Output Videos**.
+*I have DONE THIS!!! :-)* as can be seen in the *Project Output Video*.
 
-### 6.3 Application To Own Videos
+### 6.3. Application To Own Videos
 - RUBRIC: As an Additional Optional Challenge, Record Your Own Video and Run your Pipeline on it  
   to Detect Vehicles Under Different Conditions.
 
